@@ -6,6 +6,10 @@ private:
     int age;
     int height;
 
+    //const int MONTHS = 12;
+    enum {MONTHS = 12};
+    double salary[12];
+
 public:
     PersonManage();
     PersonManage(const std::string& name, const int age, const int height);
