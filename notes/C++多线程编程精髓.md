@@ -94,8 +94,8 @@
     int tid = syscall(SYS_gettid);
     ```
 4. 备注
-    * 方法1和2返回的解释`pthread_t`，本质是一块内存地址空间，如下图所示
-        * ![image](https://github.com/StartNowX/Cplusplus/blob/master/notes/imgs/1_%E7%BA%BF%E7%A8%8BID%E7%9A%84%E6%9C%AC%E8%B4%A81.PNG)
+    * 方法1和2返回的解释`pthread_t`，本质是一块内存地址空间，如下图所示G
+        * ![image](https://github.com/StartNowX/Cplusplus/blob/master/notes/imgs/1_thread_id_info.png)
     * 由于不同的进程可能拥有同样的地址空间，因此`pthread_t`不太会是全局唯一的，一般是一个很大的数
     * 方法3获取的是**系统范围内全局唯一的**，一般不是一个很大的数，即LWP（light weight process轻量级进程，早期的Linux系统的线程是通过进程来实现的，这种线程被称为轻量级线程）的ID
 
