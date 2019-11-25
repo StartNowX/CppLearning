@@ -109,3 +109,25 @@
 
 2. `std::thread::get_id()`方法，获取给定线程的ID，**类的实例方法**
 
+## 如何等待线程结束
+
+### Linux等待线程结束
+
+1. Linux下使用`pthread_join`函数等待线程结束并接受其退出码，接口使用如下:
+    ```C++
+    /**
+     * pid: 需要等待的线程
+     * retval：接受等待退出的线程的退出码，可用于pthread_exit或return
+    */
+    int pthread_join(pthread_t pid, void **retval);
+
+    /**
+     * retval可以用pthread_join中拿到的，没有可以设置为Null
+    */
+    void pthread_exit(void *retval);
+    ```
+2. `pthread_join`函数等待其他线程退出期间会挂起等待的线程
+
+### C++11提供方法
+1. C++11的`std::thread`提供了`join()`方法用来等待退出的线程，但要求线程必须是还在运行中，若线程不在运行中调用该方法，会导致程序崩溃
+    * `joinable()`方法用于判断某个线程是否可以`join`，若可以调用时再调用`join`方法
