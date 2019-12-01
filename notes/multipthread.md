@@ -233,3 +233,40 @@ sem_destroy(sem_t *semaphore);
 * `sem_wait`、`sem_trywait`、`sem_timedwait`可以被Linux信号中断，被信号中断后，函数立即返回，返回值是﹣1，错误码`errno`为`EINTR`
 
 * **这里说的信号量是POSIX信号量,一般用于线程间同步,注意区分SYSTEM V信号量,其常用于进程间同步**
+
+#### Linux下的条件变量
+1. 释放互斥体和条件变量等待必须是原子操作,以cond_wait唤醒前不会有其他线程获得互斥对象
+2. 条件变量的常用API
+   ```C++
+   // 初始化和销毁
+   pthread_cond_init(pthread_cond_t *my_cond, const pthread_condattr_t* attr);
+   pthread_cond_destroy(pthread_cond_t *my_cond);
+   // 或者
+   pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+
+   // 等待条件变量
+   pthread_cond_wait(pthread_cond_t *my_cond, pthread_condattr_t *my_cv);
+   // 上面版本的非阻塞版, abs_time是绝对时间,因此要先获取系统的时间,然后加上欲等待的时间作为timespec参数
+   pthread_cond_timedwait(pthread_cond_t *my_cond, pthread_condattr_t *my_cv, const struct timespec* abs_time);
+
+   // 唤醒等待, 两个API成功等到条件变量时,返回0,否则返回-1,可以通过errno获取错误码
+   // 一次唤醒一个线程,有多个线程调用pthread_cond_wait时,具体哪个线程被唤醒是随机的
+   pthread_cond_signal(pthread_cond_t *my_cond);
+   // 可以同时唤醒多个调用pthread_cond_wait的线程
+   pthread_cond_broadcast(pthread_cond_t *my_cond);
+   ```
+3. 注意
+   * 条件变量一定要和互斥体一起使用,保证互斥体加锁和释放与条件等待都是原子操作
+   * `pthread_cond_wait`阻塞时,会释放其绑定的互斥体,并阻塞线程,因此需要在执行之前有加锁操作
+   * `pthread_cond_wait`获得条件变量后,会对其绑定的互斥体进行加锁,因此需要在执行其之后有解锁操作
+
+4. 条件变量的虚假唤醒
+以示例程序为例(16_pthread_cv.cc),可能某次操作系统唤醒`pthread_cond_wait`时`tasks.empty()`可能仍然为true，言下之意就是操作系统可能会在一些情况下唤醒条件变量，即使没有其他线程向条件变量发送信号，等待此条件变量的线程也有可能会醒来,因此,**将条件放到while循环中,意味着光唤醒条件变量不行,还得满足条件程序才能继续执行**
+
+   * 为什么会有虚假唤醒?
+     * `pthread_cond_wait`是futex系统调用，属于阻塞型的系统调用，当系统调用被信号中断的时候，会返回﹣1，并且把errno错误码置为`EINTR`,很多这种系统调用为了防止被信号中断都会重启系统调用
+     * 为了防止某些情况下`pthread_cond_wait`无限等待下去(如`pthread_cond_wait`被中断,在其被中断后,再次调用用,`pthread_cond_singal/broadcast`已经错过了)
+     * 条件满足了发送信号，但等到调用`pthread_cond_wait`的线程得到CPU资源时，条件又再次不满足了
+
+5. 条件变量的信号丢失
+如果一个条件变量信号条件产生时（调用 pthread_cond_signal 或 pthread_cond_broadcast），没有相关的线程调用`pthread_cond_wait`捕获该信号，那么该信号条件就会永久性地丢失了，再次调用`pthread_cond_wait`会导致永久性的阻塞,当碰到条件变量只会产生一次的逻辑时,要格外注意
