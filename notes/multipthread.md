@@ -158,3 +158,46 @@
 
 2. C++11支持的不同类型的原子操作完整列表如下
     * (完整列表](https://zh.cppreference.com/w/cpp/atomic/atomic)
+
+### Linux下的线程同步对象
+
+#### Linux下的mutex互斥体
+Linux下的m互斥体都实现在NPTL(Native POSIX Thread Library), 在NPTL中使用数据结构`pthread_mutex_t`表示一个互斥对象(头文件`pthread.h`)
+1. mutex互斥对象初始化
+   * 使用`PTHREAD_MUTEX_INITIALIZER`直接给其赋值
+     ```C++
+     pthread_mutex_t my_mutex = PTHREAD_MUTEX_INITIALIZER;
+     ```
+   * 使用`pthread_mutex_init`动态设置mutex互斥对象的属性,当不需要时,使用`pthread_mutex_destroy`销毁
+     ```
+     pthread_mutex_t my_mutex;
+     pthread_mutex_init(&my_mutex, NULL); // 第二个参数是属性,为NULL时即为普通锁PTHREAD_MUTEX_NORMAL
+     pthread_mutex_destroy(&my_mutex);
+     ```
+   * 设置mutex的属性调用如下接口
+     ```C++
+     pthread_mutexattr_init(pthread_mutexattr_t *my_mutex_attr);
+     pthread_mutexattr_settype(pthread_mutexattr_t *my_mutex_attr, int type);
+     pthread_mutexattr_gettype(pthread_mutexattr_t *my_mutex_attr, int *type);
+     pthread_mutex_init(&my_mutex, my_mutex_attr); // 将属性使能给互斥体对象
+     ```
+   * 注意
+     * **使用`PTHREAD_MUTEX_INITIALIZER`初始化时不需要销毁**
+     * **不要去销毁一个已经加锁或正在被条件变量使用的互斥体对象**,有些系统,销毁一个正在加锁的互斥体对象会报`EBUSY`的错误
+
+2. mutex互斥体对象加锁和解锁
+mutex互斥体对象加锁和解锁的方式有如下方式:
+   ```C++
+   pthread_mutex_lock(pthread_mutex_t *mutex);
+   pthread_mutex_trylock(pthread_mutex_t *mutex);
+   pthread_mutex_unlock(pthread_mutex_t *mutex);
+   ```
+
+3. mutex互斥体中锁的类型
+   * 普通锁`PTHREAD_MUTEX_NORMAL`, `pthread_mutex_init`第二个参数为空时的默认值; 对一个线程加上普通锁后,其他线程会阻塞在`pthread_thread_lock`处,直到加锁线程释放锁后才能调用
+     * 一个线程如果对一个已经加锁的普通锁再次使用`pthread_mutex_lock`加锁，程序会阻塞在第二次调用`pthread_mutex_lock`代码处,这时如果使用`pthread_thread_trylock`则会返回一个`EBUSY`的错误,而不会阻塞
+   * 检错锁`PTHREAD_MUTEX_ERRCHECK`
+     * 如果互斥体的属性是`PTHREAD_MUTEX_ERRORCHECK`，当前线程重复调用`pthread_mutex_lock`会直接返回`EDEADLOCK`，其他线程如果对这个互斥体再次调用`pthread_mutex_lock`会阻塞在该函数的调用处
+   * 嵌套锁`PTHREAD_MUTEX_RECURSIVE`
+     * 该属性允许同一个线程对其持有的互斥体重复加锁，每次成功调用`pthread_mutex_lock`一次, 该互斥体对象的锁引用计数就会增加一次，相反，每次成功调用`pthread_mutex_unlock`一次，锁引用计数就会减少一次, 当锁引用计数值为0时允许其他线程获得该锁，否则其他线程调用`pthread_mutex_lock`时尝试获取锁时, 会阻塞在那里
+4. 为了避免因忘记调用`pthread_mutex_lock`出现死锁或者在逻辑出口处有大量解锁的重复代码出现，建议使用`RAII`技术将互斥体对象封装起来
