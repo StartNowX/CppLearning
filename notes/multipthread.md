@@ -201,3 +201,35 @@ mutex互斥体对象加锁和解锁的方式有如下方式:
    * 嵌套锁`PTHREAD_MUTEX_RECURSIVE`
      * 该属性允许同一个线程对其持有的互斥体重复加锁，每次成功调用`pthread_mutex_lock`一次, 该互斥体对象的锁引用计数就会增加一次，相反，每次成功调用`pthread_mutex_unlock`一次，锁引用计数就会减少一次, 当锁引用计数值为0时允许其他线程获得该锁，否则其他线程调用`pthread_mutex_lock`时尝试获取锁时, 会阻塞在那里
 4. 为了避免因忘记调用`pthread_mutex_lock`出现死锁或者在逻辑出口处有大量解锁的重复代码出现，建议使用`RAII`技术将互斥体对象封装起来
+
+#### Linux下的信号量semaphore
+Linux的信号量本质是资源有多份,可以被多个线程访问,常用的API如下
+```C++
+// 初始化,shared是指该信号量是否可以被初始化该信号量的进程fork出来的子进程共享，取值为0（不可以共享）、1（可以共享）,value是指设置信号量初始状态下资源的数量
+// 调用成功返回0,失败返回-1
+sem_init(sem_t *semaphore, int shared, unsigned int value);
+// 将信号量的资源加1,并解锁该信号量对象，这样其他由于使用sem_wait被阻塞的线程会被唤醒
+sem_post(sem_t *semaphore);
+// 如果当前信号量资源计数为 0，sem_wait会阻塞调用线程; 直到信号量对象的资源计数大于0时被唤醒，唤醒后将资源计数递减1，然后立即返回
+sem_wait(sem_t *semaphore);
+// sem_wait的非阻塞版本, 若信号量资源数为0,立即返回-1,错误码被设置为EAGAIN
+sem_trywait(sem_t *semaphore);
+// sem_wait的带等待时间的版本,若超时等待时间内资源数没有大于0,则返回-1, 错误码被设置为ETIMEDOUT
+// 当调用该版本时,abs_timeout不能设置为空
+sem_timedwait(sem_t *semaphore, const struct timespec* abs_timeout);
+// 销毁信号量
+sem_destroy(sem_t *semaphore);
+```
+其中,
+* timespec的结构体如下:
+  ```C++
+  struct timespec{
+      time_t tv_sec;
+      long tv_nsec;
+  };
+  ```
+* `sem_wait`、`sem_trywait`、`sem_timedwait`函数将资源计数递减一时会同时锁定信号量对象，因此当资源计数为1时，如果有多个线程调用`sem_wait`等函数等待该信号量时，只会有一个线程被唤醒。当`sem_wait`函数返回时，会释放对该信号量的锁
+* `sem_wait`、`sem_trywait`、`sem_timedwait`函数调用成功后返回值均为0，调用失败返回﹣1，可以通过错误码`errno`获得失败原因
+* `sem_wait`、`sem_trywait`、`sem_timedwait`可以被Linux信号中断，被信号中断后，函数立即返回，返回值是﹣1，错误码`errno`为`EINTR`
+
+* **这里说的信号量是POSIX信号量,一般用于线程间同步,注意区分SYSTEM V信号量,其常用于进程间同步**
