@@ -337,3 +337,40 @@ sem_destroy(sem_t *semaphore);
      pthread_rwlock_t my_rwlock;
      pthread_rwlock_init(&my_rwlock, my_rwlockattr);
      ```
+
+#### C++11/14/17的多线程
+1. `std::mutex`系列的对象,这些对象均提供了`lock`,`trylock`,`unlock`方法
+   * `mutex`
+   * `timed_mutex`
+   * `recursive_mutex`
+   * `recursive_timed_mutex`
+   * `shared_timed_mutex`, C++14
+   * `shared_mutex`, C++17
+2. 利用RAII封装的安全的互斥对象
+   * `lock_guard`, C++11提供的基于作用域的互斥量管理
+   * `unique_lock`, C++11提供的更灵活的互斥量管理
+   * `shared_lock`, C++14提供
+   * `scope_lock`, C++17,多互斥量避免死锁
+2. `std::condition_variable`对象,该对象提供了如下方法
+   * 等待条件满足的wait方法,`wait`, `wait_for`, `wait_until`
+   * 发送信号的`notify`方法, `notify_one`和`notify_all`
+   * 同样的,需要为`std::condition_variable`对象绑定一个`std::unique_lock`或`std::lock_guard`对象
+
+#### 判断创建的线程一定运行起来了
+* 在一些“古老”或者“严谨”的项目中，你会发现这些代码创建线程时不仅判断线程创建函数是否调用成功，还会在线程函数中利用上文介绍的一些线程同步对象来通知线程的创建者线程是否创建成功
+
+#### 锁的使用经验
+1. 减少锁的使用,因为
+   * 加锁和解锁操作，本身有一定的开销,
+   * 临界区的代码不能并发执行,
+   * 进入临界区的次数过于频繁，线程之间对临界区的争夺太过激烈，若线程竞争互斥量失败，就会陷入阻塞，让出 CPU，因此执行上下文切换的次数要远远多于不使用互斥量的版本。
+
+2. 明确锁的范围,不要漏加锁
+3. 减少锁的粒度,即减少锁作用的临界区的代码量
+4. 避免死锁的注意事项
+   * 一个函数中，如果有一个加锁操作，那么一定要记得在函数退出时记得解锁，且每个退出路径上都不要忘记解锁路径
+   * 线程退出时,一定要释放锁其持有的锁
+   * 多线程请求锁的方向一致
+5. 避免活锁的注意事项
+   * 活锁就是，当多个线程使用`trylock`系列的函数时，由于多个线程相互谦让，导致即使在某段时间内锁资源是可用的，也可能导致需要锁的线程拿不到锁
+   * 在实际使用中,尽量避免过多的使用`trylock`系列的函数请求锁
