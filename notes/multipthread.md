@@ -270,3 +270,70 @@ sem_destroy(sem_t *semaphore);
 
 5. 条件变量的信号丢失
 如果一个条件变量信号条件产生时（调用 pthread_cond_signal 或 pthread_cond_broadcast），没有相关的线程调用`pthread_cond_wait`捕获该信号，那么该信号条件就会永久性地丢失了，再次调用`pthread_cond_wait`会导致永久性的阻塞,当碰到条件变量只会产生一次的逻辑时,要格外注意
+
+#### Linux下的读写锁
+实际应用中,共享变量之前的读请求可以同步,但极少数情况下会用到写请求,这时就需要将写请求锁住;若用互斥对象,则资源利用效率较低(很少情况下才会写请求),因此引入读写锁
+1. 常用API
+   ```C++
+   #include <pthread.h>
+
+   pthread_rwlock_init(pthread_rwlock_t *my_rwlock, const pthread_rwlockattr_t *my_attr);
+   pthread_rwlock_destroy(pthread_rwlock_t *my_rwlock);
+
+   // 若不需要动态创建或者设置非默认属性的读写锁对象，也可以使用如下语法初始化一个读写锁对象
+   pthread_rwlock_t my_rwlock = PTHREAD_RWLOCK_INITIALIZER;
+
+   // 三种读锁
+   pthread_rwlock_rdlock(pthread_rwlock_t *my_rwlock);
+   pthread_rwlock_tryrdlock(pthread_rwlock_t *my_rwlock);
+   pthread_rwlock_timedrdlock(pthread_rwlock_t *my_rwlock, const struct timespec* abs_time);
+
+   // 三种写锁
+   pthread_rwlock_wrlock(pthread_rwlock_t *my_rwlock);
+   pthread_rwlock_trywrlock(pthread_rwlock_t *my_rwlock);
+   pthread_rwlock_timedwrlock(pthread_rwlock_t *my_rwlock, const struct timespec* abs_time)
+
+   // 释放锁(读写锁)
+   pthread_rwlock_unlock(pthread_rwlock_t *my_rwlock);
+   ```
+2. 关于读锁和写锁的性质
+   * **读锁用于共享模式**
+     * 若当前读写锁已经被某线程以**读模式**占有,其他线程调用`pthread_rwlock_rdlock`(申请读锁)会立即获得锁
+     * 若当前读写锁已经被某线程以**读模式**占有,若其他线程调用`pthread_rwlock_wrlock`请求写锁会陷入**阻塞**
+   * **写锁用于独占模式**
+     * 若当前读写锁已经被某线程以**写模式**占有,则其他线程不管调用`pthread_rwlock_rdlock`还是`pthread_rwlock_wrlock`都会陷入阻塞
+
+3. 读写锁的属性
+   * 对应的常用API有
+     ```C++
+     pthread_rwlockattr_t my_rwlockattr;
+
+     // 初始化和销毁读写锁属性变量
+     pthread_rwlockattr_init(&my_rwlockattr);
+     pthread_rwlockattr_destroy(&my_rwlockattr);
+
+     // 查询或设置读写锁属性
+     pthread_rwlockattr_setkind_np(pthread_rwlockattr_t *my_rwlockattr, int pref);
+     pthread_rwlockattr_getkind_np(pthread_rwlockaatr_t *my_rwlockattr, int *pref);
+     ```
+   * 其中,`pref`即是读写锁的属性/类型,结构体如下
+     ```C++
+     enum{
+         // 读者优先
+         PTHREAD_RWLOCK_PREFER_READER_NP,
+         // 也是读者优先
+         PTHREAD_RWLOCK_PREFER_WRITER_NP,
+         // 写者优先
+         PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP,
+         PTHREAD_RWLOCK_DEFAULT_NP = PTHREAD_RWLOCK_PREFER_READER_NP
+         
+     };
+     ```
+   * 示例初始化一个写者优先的读写锁
+     ```C++
+     pthread_rwlockattr_t my_rwlockattr;
+     pthread_rwlockattr_init(&my_rwlockattr);
+     pthread_rwlockattr_setkind_np(&my_rwlockattr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+     pthread_rwlock_t my_rwlock;
+     pthread_rwlock_init(&my_rwlock, my_rwlockattr);
+     ```
