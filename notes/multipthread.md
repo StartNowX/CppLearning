@@ -374,3 +374,34 @@ sem_destroy(sem_t *semaphore);
 5. 避免活锁的注意事项
    * 活锁就是，当多个线程使用`trylock`系列的函数时，由于多个线程相互谦让，导致即使在某段时间内锁资源是可用的，也可能导致需要锁的线程拿不到锁
    * 在实际使用中,尽量避免过多的使用`trylock`系列的函数请求锁
+
+
+### 线程局部存储
+将每个线程都拥有的自己的一份数据称之为线程局部存储（Thread Local Storage, TLS），对应的区域叫线程局部存储区域
+#### Linux下的线程局部存储
+
+1. Linux的NTPL提供了如下接口
+    ```C++
+    // 调用成功为线程局部存储创建一个新的key值，且key是指向一个全局变量（因为所有线程都可以访问key）
+    // destructor是一个自定义的函数指针, 线程终止，若key不为null，则调用自定义的destructor函数释放资源，若不需要释放，则可以将destructor设置为null
+    int pthread_key_create(pthread_key_t *key, (void)(*destructor)(void*));
+    int pthread_key_delete(pthread_key_t key);
+
+
+    int pthread_setspecifc(pthread_key_t key, const void* value);
+    void pthread_getspecific(pthread_key_t key);
+    ```
+    * `pthread_key_create`调用成功，会返回一个小于1024的值填入第一个参数对应的`pthread_key_t`类型的变量
+
+2. Linux提供了`__thread`来简化定义线程局部变量
+    ```C++
+    // 线程局部存储
+    __thread int value = 1;
+    ```
+
+3. C++11提供了`thread_local`关键字定义线程局部变量
+    ```C++
+    thread_local int value = 1;
+    ```
+4. 对于线程变量，每个线程都会有该变量的一个拷贝，**并行不悖，互不干扰**，该局部变量一直都在，直到线程退出为止；
+5. 系统的线程局部存储区域内存空间并不大，因此尽量不要利用这个空间存储大的数据块，如果不得不使用大的数据块，可以将大的数据块存储在堆内存中，再将该堆内存的地址指针存储在线程局部存储区域
