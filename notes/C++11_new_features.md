@@ -60,6 +60,49 @@ C++14以后lambda表达式可以捕获表达式，参考[https://www.jianshu.com
 2. lambda函数不支持可变参数
 3. lambda函数的所有参数必须有参数名
 
+### delete结合用
+和delete结合使用时，需要加上括号，否则将把delete和捕获列表解释未动态数组的内存回收
+`delete {[](int num){ int *ptr = new int(num);}`
+
 
 遗留问题：
 1. 如何理解C++中的闭包（closure）？
+
+
+## 智能指针
+
+### shared_ptr
+`shared_ptr`提供了一个有限的内存回收机制，同时能够保证多个对象共享指针；一个`shared_ptr`由如下两部分组成：
+* a stored pointer，也即指针所指向的内存，可以用`*`解引用，该指针可以用`shared_ptr::get()`成员函数获得
+* a owned pointer, 可以理解为指向控制块，会控制该指针的生存周期
+通常，这两个指针都是同一个对象，但也有例外，如`alias shared_ptr object`
+
+1. `shared_ptr`的创建方式
+    * 构造函数：有多种构造函数的方式，注意不同构造函数引起的引用计数的变化。参见[http://www.cplusplus.com/reference/memory/shared_ptr/shared_ptr/](http://www.cplusplus.com/reference/memory/shared_ptr/shared_ptr/)
+    * 构造函数的初始化方式中，注意使用alias shared_ptr的不同，主要是其`stored pointer`和`owned pointer`的不同
+    * `std::make_shared`函数模版，如:
+        ```C++
+        std::shared_ptr<int> p_make = std::make_shared<int>(3);
+        // same as the following
+        std::shared_ptr<int> p_make(new int(10));
+        ```
+    * empty的shared_ptr（不拥有任何指针对象）和null的shared_ptr（指针不指向任何对象）是不一样的，不过两者的`use_count`都是0
+    * **shared_ptr只能通过拷贝值来共享其对指针的所有权，如果两个shared_ptr都是用同一个非share_ptr指针构造的，那么，这两个shared_ptr都拥有这个指针，但是并不共享**，这会导致当某一个shared_ptr释放时，另一个shared_ptr指向的就是一个无效的地址来
+
+2. `shared_ptr`的访问方式
+    * 等同于普通指针的解引用方式，`*`或`->`
+
+3. `shared_ptr`的赋值方式
+    * 赋值操作
+    * 显示调用`shared_ptr::reset`
+        * 若调用`reset`时空参，则指针变为empty，不能再进行解引用，use_count变为0
+        * 若调用`reset`时传参为指针时，this pointer should not be already managed by any other managed pointer.
+    * `swap`成员函数或非成员函数版本的`swap`函数交换两个shared_ptr指针，其管理的对象的控制权也同步更改（不会更改对象本身的use count，即两个指针调用`use_count`时结果也换了）
+
+4. `shared_ptr`其他成员函数
+    * `get()`：获取shared_ptr的stored pointer，当shared_ptr是alias时，stored pointer和owned pointer不同
+    * `swap()`
+    * `reset()`
+    * `use_count()`
+    * `unique()`：判断shared_ptr是否和其他对象共享指针，是则返回false，不是返回true；empty的shared_ptr永远是返回false；其结果等同于`use_count()==1`
+    * `owner_before`: owner-based ordering，考虑的是shared_ptr的owner pointer，区别于`<`(比较的是stored pointer，即shared_ptr::get()的结果)，该部分需要再消化一下
