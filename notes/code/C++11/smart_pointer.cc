@@ -143,7 +143,42 @@ void SharedPtr() {
     std::cout << std::endl;
 }
 
-void WeakPtr() { std::cout << std::endl; }
+void WeakPtr() {
+    // init weak_ptr
+    std::weak_ptr<int> w_ptr1;
+    {
+        auto ptr = std::make_shared<int>(3);
+        w_ptr1 = ptr;
+        std::cout << "inside, w_ptr1 = " << w_ptr1.use_count() << std::endl;
+
+        // error, must convert to shared_ptr first
+        // std::weak_ptr<int> w_ptr2(new int(5));
+        std::shared_ptr<int> ptr1 = std::make_shared<int>(5);
+        // std::weak_ptr<int> w_ptr2(std::make_shared<int>(5)); // w_ptr2.use_count() == 0,
+        // std::make_shared<int>(5)不管理其对象，因此w_ptr2也不拥有其管理权限
+        std::weak_ptr<int> w_ptr2(ptr1);  // w_ptr2.use_count() == 1
+        std::cout << "inside, w_ptr2 = " << w_ptr2.use_count() << std::endl;
+
+        auto w_ptr3 = w_ptr1.lock();
+        if (w_ptr3) {
+            std::cout << "w_ptr3 is locked" << std::endl;
+        } else {
+            std::cout << "w_ptr3 is not locked" << std::endl;
+        }
+
+    }
+    std::cout << "out, w_ptr1 = " << w_ptr1.use_count() << std::endl;
+    std::cout << "w_ptr1.expired = " << std::boolalpha << w_ptr1.expired() << std::endl;  // True
+
+    auto w_ptr3 = w_ptr1.lock();
+    if (w_ptr3) {
+        std::cout << "w_ptr3 is locked" << std::endl;
+    } else {
+        std::cout << "w_ptr3 is not locked" << std::endl;
+    }
+
+    std::cout << std::endl;
+}
 
 
 class StateDeleter {
@@ -281,7 +316,7 @@ void UniquePtr() {
     {
         std::cout << "shared deleter " << std::endl;
         std::shared_ptr<int> sp1(new int(5), StateDeleter());
-        sp1 = std::make_shared<int>(3); // 同样会调用自定义的deleter
+        sp1 = std::make_shared<int>(3);  // 同样会调用自定义的deleter
     }
 
     std::cout << std::endl;
@@ -293,11 +328,11 @@ int main(int argc, char *argv[]) {
     // std::cout << "1. shared_ptr" << std::endl;
     // SharedPtr();
 
-    // std::cout << "2. weak_ptr" << std::endl;
-    // WeakPtr();
+    std::cout << "2. weak_ptr" << std::endl;
+    WeakPtr();
 
-    std::cout << "3. unique_ptr" << std::endl;
-    UniquePtr();
+    // std::cout << "3. unique_ptr" << std::endl;
+    // UniquePtr();
 
     std::cout << "\n  ****** end smart pointer ****** " << std::endl;
 
