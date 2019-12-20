@@ -126,3 +126,15 @@ C++14以后lambda表达式可以捕获表达式，参考[https://www.jianshu.com
 
 ---
 参考资料[官方链接](http://www.cplusplus.com/reference/memory/unique_ptr/)
+
+
+### weak_ptr
+`weak_ptr`对`shared_ptr`管理的对象存在非拥有性（弱）引用，在访问所引用的对象前，需要将其转为`shared_ptr`；该指针表达的是临时所有权的概念，具体参考[https://zh.cppreference.com/w/cpp/memory/weak_ptr](https://zh.cppreference.com/w/cpp/memory/weak_ptr)
+
+1. `weak_ptr`成员函数
+    * `reset`
+    * `swap`
+    * `expired`: 检查weak_ptr对象是否被释放了，若被释放了，则返回true
+    * `lock`: 若weak_ptr没有被expired，返回weak_ptr保存的shared_ptr信息；否则返回empty的share_ptr指针；这个接口用来锁定owned pointer，防止被release
+    * `owner_before`
+    * `use_count`
