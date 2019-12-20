@@ -102,3 +102,27 @@ C++14以后lambda表达式可以捕获表达式，参考[https://www.jianshu.com
     * `use_count()`
     * `unique()`：判断shared_ptr是否和其他对象共享指针，是则返回false，不是返回true；empty的shared_ptr永远是返回false；其结果等同于`use_count()==1`
     * `owner_before`: owner-based ordering，考虑的是shared_ptr的owner pointer，区别于`<`(比较的是stored pointer，即shared_ptr::get()的结果)，该部分需要再消化一下
+
+
+### unique_ptr
+`unique_ptr`指针和`shared_ptr`很像，只是`unique_ptr`指针不像`shared_ptr`指针可以共享其对象，其独占自己的对象。通常一个`unique_ptr`指针对象由如下两部分组成：
+* `a stored pointer`：指向指针管理的对象，同样可以通过赋值操作和`reset`函数改变，可以通过`get`和`release`进行访问
+* `a stored deleter`：一个用与`a stored pointer`相同类型的指针作为参数的可调用对象，用来删除其管理的对象，可以通过赋值操作更改，同样可以通过`get_deleter`进行访问
+
+1. `unique_ptr`的创建方式
+    * `unique_ptr`的创建很像`shared_ptr`，但是没有alias的方式
+    * `unique_ptr`移除了拷贝构造
+
+2. `unique_ptr`的赋值方式
+    * 解引用配合赋值操作
+    * `reset`成员函数
+    * `swap`成员函数
+
+2. `unique_ptr`的成员函数
+    * `reset`: 同`shared_ptr`
+    * `release`: 返回`unique_ptr`中的stored pointer，即返回的是一个指针，和`unique_ptr`给定的模版参数类型一致，同时用nullptr替换该`unique_ptr`指针
+    * `get`: 返回stored pointer，可以对其解引用，获得`unique_ptr`的值，但是并没有释放对其对象的所有权，注意和`release`区别
+    * `get_deleter`: 返回可调用对象stored deleter，当`unique_ptr`被销毁、赋新的值或者执行`reset`时，会调用stored deleter删除其管理的对象
+
+---
+参考资料[官方链接](http://www.cplusplus.com/reference/memory/unique_ptr/)
