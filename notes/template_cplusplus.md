@@ -182,3 +182,22 @@
         int a[::max(sizeof(char), 1000u)];
         ```
     * Here skip it for focusing on fundamentals.
+
+
+### Chapter 2 Class Templates
+
+#### Declaration&Implementation of Class Templates
+1. Before declaration, you have to declare one or more identifiers as type parameters.(Similar to function template)
+2. It's better to using class not followed by template arguments inside a class, which denotes the class with its template parameters as its arguments. But outside, must use full type qualification of class template.
+    * As ususlly <T> signals special handling of special template parameters.
+        ```C++
+        template <typename T>
+        class Stack{
+            ...
+            Stack(Stack const &); // copy constructor
+            Stack& operator=(Stack const&); // assignment operator
+            ...
+        };
+        ```
+
+3. **Unlike nontemplate classes, class template must not be declared or defined inside function or block scope**. In general, template can only be defined in global/namespace scope or inside class declarations.
