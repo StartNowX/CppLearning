@@ -7,6 +7,9 @@ Lambda表达式的完整声明方式如下
 // exception设定异常
 [capture list](params list) mutable exception -> return type {function body}
 ```
+
+* 每一个Lambda表达式都有一个全局唯一的类型，要精准捕捉lambda表达式到一个变量中，**只能通过auto声明的方式**
+
 几种简易的“不完整”的lambda表达式，如下：
 ```C++
 [capture list](params list) -> return type {function body}
@@ -25,6 +28,11 @@ lambda通过`[]`明确指明其内部可以访问的外部变量
 6. `[&, x]`：以值的方式捕获x，以引用的方式捕获其余的所有外部变量
 7. `[this]`：捕获lambda所在类的this指针（复制指针），lambda表达式拥有和当前类成员同样的访问权限
 8. `[*this]`：通过传值的方式捕获当前对象
+
+一般不推荐默认捕获符，同时也一般鼓励采用按值捕获的方式，除非有以下条件：
+1. 需要在lambda表达式中修改这个变量并让外部观察到
+2. 需要看到这个变量在外部被修改的结果
+3. 这个变量的复制代价比较高
 
 ### lambda表达式的类型
 C++11将lambda表达式的类型称为**闭包类型（closure type）**，是一个带有`operator()`的类，可以使用`std::function`和`std::bind`存储和操作lambda表达式

@@ -13,3 +13,27 @@ New features about C++11
         * 一个类如果要实例化为`constexpr`，其需要调用的成员函数必须声明为`constexpr`
     * 可以使用std::array必须编译期常量才能编译通过来确认函数的返回值是不是编译期常量，见[参考资料2](https://www.zhihu.com/question/35614219)
 3. 注意区分`const`和`constexpr`
+    * 本质上，`const`是一个*运行时常量*，const类型声明的不同位置产生不同的结果（顶层const，底层const）；`constexpr`是*编译期常量*，其类型声明的位置对结果没影响，一般将其放在类型前面
+    * *C++17中增加的内联变量*: 对类的静态数据成员，const缺省是非内联的，constexpr则是内联的；类外部的constexpr缺省也是非内联的
+        ```c++
+        // 以下代码在支持c++17中的编译器使用
+        #include <iostream>
+        #include <vector>
+
+        /* before inline variable
+        struct magic {
+            static const int number;
+        };
+        const int magic::number = 42;
+        */
+        // 如果不加入这个定义的话，会提示
+        // const int magic::number = 42;
+
+        int main()
+        {
+            std::vector<int> v;
+            // 调用 push_back(const T&)
+            v.push_back(magic::number);
+            std::cout << v[0] << std::endl;
+        }
+        ```
