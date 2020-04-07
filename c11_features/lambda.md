@@ -45,6 +45,5 @@ C++14以后lambda表达式可以捕获表达式，参考[https://www.jianshu.com
 2. lambda函数不支持可变参数
 3. lambda函数的所有参数必须有参数名
 
-
 遗留问题：
 1. 如何理解C++中的闭包（closure）？
