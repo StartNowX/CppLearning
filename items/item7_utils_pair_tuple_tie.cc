@@ -39,6 +39,7 @@ void TestPair() {
     cout << "size: " << std::tuple_size<decltype(tmp_tuple1)>::value << endl;  // 输出4
 }
 
+#include <map>
 #include <set>
 void TestTie() {
     std::tuple<std::string, std::string, int, double> a_tuple{"abc", "ef", 1, 2.0};
@@ -47,6 +48,7 @@ void TestTie() {
     int i_a;
     double d_b;
     std::tie(s1, s2, i_a, d_b) = a_tuple;
+    // auto [s1, s2, i_a, d_b] = a_tuple; // C++17
     cout << "s1: " << s1 << ", s2: " << s2 << ", i_a: " << i_a << ", d_b: " << d_b << endl;
     i_a = 4;
     std::tuple_element<2, std::tuple<std::string, std::string, int, double>>::type third = std::get<2>(a_tuple);
@@ -56,6 +58,18 @@ void TestTie() {
     int aaa;
     std::tie(s11, ignore, aaa, ignore) = a_tuple;
     cout << "s11: " << s11 << ", aaa: " << aaa << endl;
+
+
+    std::map<string, int> mmp;
+    multimap<string, int>::iterator lower, upper;
+    std::tie(lower, upper) = mmp.equal_range("four");
+
+    // // C++17
+    // auto [lower, upper] = mmp.equal_range("four");
+
+    // // C++17
+    // int a[2] = {1, 2};
+    // auto [x, y] = a;
 }
 
 int main(int argc, char* argv[]) {

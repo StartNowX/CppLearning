@@ -144,14 +144,17 @@ void TestQueue() {
 
 /**
  * priority_queue，优先队列，底层是堆，头文件queue
- * 默认是大顶堆
+ * 默认是大顶堆，默认调用的比较函数对象是less，容器内的顺序既不是FIFO，也不是FILO，而是部分排序，如果想要小顶堆的话，比较函数用greater
  * empty/size/swap
  * pop/emplace/push
  * top
  */
-
+#include <algorithm>
+#include <memory>
 void TestPriorityQueue() {
-    std::priority_queue<int> pq;
+    // std::priority_queue<int> pq;                          // 默认大顶堆
+    std::priority_queue<int, vector<int>, less<int>> pq;  // 大顶堆
+    // std::priority_queue<int, vector<int>, greater<int>> pq;  // 小顶堆
     for (int i = 0; i < 5; ++i) {
         pq.emplace(i);
     }
@@ -162,6 +165,24 @@ void TestPriorityQueue() {
     }
 
     cout << endl;
+
+    using PairInt = pair<int, int>;
+    auto cmp = [](PairInt a, PairInt b) { return a.second < b.second; };
+    // priority_queue<PairInt, vector<PairInt>, greater<PairInt>> pq_pair;  // 根据第一个元素排序的小顶堆
+
+    // priority_queue的第三个参数是【函数对象类型】，而不是仅仅是个函数对象，因此需要用类似decltype(cmp)或者function<bool(Param1,
+    // Param2)>这样的方式
+    priority_queue<PairInt, vector<PairInt>, decltype(cmp)> pq_pair(cmp);
+    // priority_queue<PairInt, vector<PairInt>, std::function<bool(PairInt, PairInt)>> pq_pair(cmp);
+    pq_pair.push({1, 1});
+    pq_pair.push({2, 2});
+    pq_pair.push({0, 3});
+    pq_pair.push({9, 4});
+    while (!pq_pair.empty()) {
+        auto ele = pq_pair.top();
+        cout << ele.first << " " << ele.second << endl;
+        pq_pair.pop();
+    }
 }
 
 /**
@@ -263,11 +284,11 @@ int main(int argc, char* argv[]) {
 
     // TestQueue();
     // TestDeque();
-    // TestPriorityQueue();
+    TestPriorityQueue();
 
     // TestArray();
 
-    TestForwardList();
+    // TestForwardList();
 
     return 0;
 }
