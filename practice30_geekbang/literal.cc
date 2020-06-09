@@ -16,7 +16,12 @@ struct length {
     };
 
     static constexpr double factors[] = {1.0, 1000.0, 1e-3, 1e-2, 0.0254, 0.3048, 0.9144, 1609.344};
+    // 对于类内的const int类型成员，可以直接初始化，其他类型则不行，需要在类外初始化
+    // static const int factors = 3;
 
+    /**
+     * 参数u是变量，导致factors的constexpr属性没有了，编译器按照static的属性进行编译，要求变量必须在类外定义了
+     */
     explicit length(double val, unit u = unit::metre) { value = val * factors[static_cast<int>(u)]; }
     // explicit length(double val, unit u = unit::metre) { value = val * factors[1]; }
 
@@ -24,6 +29,7 @@ struct length {
     void set() { double b = factors[static_cast<int>(unit::metre)]; }
 };
 
+// C17开始不需要在类外再定义了https://stackoverflow.com/questions/8016780/undefined-reference-to-static-constexpr-char
 constexpr double length::factors[];  // 非构造函数中调用可以不用写
 
 /**
